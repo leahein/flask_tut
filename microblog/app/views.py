@@ -4,21 +4,26 @@ from app import app, db, lm, oid
 from .forms import LoginForm
 from .models import User
 
+@app.before_request
+def before_request():
+    g.user = current_user
+
 @app.route('/')
 @app.route('/index')
+@login_required
 def index():
-	user = {'nickname': 'Leah'}
-	posts = [
-		{
-		    'author': {'nickname': 'John'},
-		    'body': 'Beautiful day in Portland!'
-		},
-		{
-                    'author': {'nickname': 'Susan'},
-                    'body': 'The Avengers movie was so cool!'
-		}
-	]
-	return render_template('index.html', title='Home', user=user)
+    user = g.user
+    posts = [
+        {
+            'author': {'nickname': 'John'},
+            'body': 'Beautiful day in Portland!'
+        },
+        {
+            'author': {'nickname': 'Susan'},
+            'body': 'The Avengers movie was so cool!'
+        }
+    ]
+    return render_template('index.html', title='Home', user=user)
 
 @app.route('/login', methods=['GET', 'POST'])
 @oid.loginhandler
@@ -41,6 +46,16 @@ def after_login(resp):
     if user is None:
         nickname = resp.nickname
         if not nickname:
+            nickname = resp.email.split('@')[0]
+        user = User(nickname=nickname, email=resp.email)
+        db.session.add(user)
+        db.session.commit()
+    remember_me = False
+    if 'remember_me' in session:
+        remember_me = session['remember_me']
+        session.pop('remember_me', None)
+    login_user(user, remember = remember)
+    return redirect(request.args.get('next') or url_for('index'))
 
 
 @lm.user_loader
