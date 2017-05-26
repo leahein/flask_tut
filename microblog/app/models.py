@@ -1,3 +1,4 @@
+from hashlib import md5
 from app import db
 
 class User(db.Model):
@@ -5,6 +6,11 @@ class User(db.Model):
     nickname = db.Column(db.String(64), unique=True)
     email = db.Column(db.String(120), unique=True)
     posts = db.relationship('Post', backref='author', lazy='dynamic')
+    about_me = db.Column(db.String(140))
+    last_seen = db.Column(db.DateTime)
+
+    def avatar(self, size):
+        return 'http://www.gravatar.com/avatar/%s?d=mm&s=%d' % (md5(self.email.encode('utf-8')).hexdigest(), size)
 
     @property
     def is_authenticated(self):
